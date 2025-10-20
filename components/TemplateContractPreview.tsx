@@ -76,11 +76,13 @@ export default function TemplateContractPreview({ customer, contractData, compan
   return (
     <div 
       id="contract-content" 
-      className="bg-white p-8 max-w-4xl mx-auto" 
+      className="bg-white max-w-4xl mx-auto" 
       style={{ 
         fontFamily: 'system-ui, -apple-system, sans-serif',
         backgroundColor: '#ffffff',
-        color: '#000000'
+        color: '#000000',
+        padding: '32px',
+        paddingBottom: '48px' // 下部パディングを増加
       }}
     >
       {/* タイトル */}
@@ -112,7 +114,7 @@ export default function TemplateContractPreview({ customer, contractData, compan
       </div>
 
       {/* 後文と署名欄 */}
-      <div className="contract-section mt-12 pt-8 border-t">
+      <div className="contract-section mt-12 pt-8 border-t" style={{ paddingBottom: '24px' }}>
         <p className="mb-8">{replaceVariables(template.conclusion)}</p>
         
         <div className="mt-8 space-y-8">
@@ -143,6 +145,9 @@ export default function TemplateContractPreview({ customer, contractData, compan
               </div>
             </div>
           </div>
+          
+          {/* 署名欄の下部に追加のマージン */}
+          <div style={{ height: '32px' }}></div>
         </div>
       </div>
     </div>

@@ -58,6 +58,8 @@ export async function generateSimplePDF(elementId: string, filename: string): Pr
       scrollY: 0,
       width: element.scrollWidth,
       height: element.scrollHeight,
+      windowWidth: element.scrollWidth,
+      windowHeight: element.scrollHeight,
       ignoreElements: (element) => {
         return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
       },
@@ -74,28 +76,32 @@ export async function generateSimplePDF(elementId: string, filename: string): Pr
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pdfWidth - 20; // 余白
+    const marginTop = 20;
+    const marginBottom = 30; // 下部余白を増加
+    const marginSide = 15;
+    const imgWidth = pdfWidth - (marginSide * 2);
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
     // 画像がページより大きい場合は複数ページに分割
-    if (imgHeight > pdfHeight - 20) {
-      const totalPages = Math.ceil(imgHeight / (pdfHeight - 20));
+    if (imgHeight > pdfHeight - marginTop - marginBottom) {
+      const availableHeight = pdfHeight - marginTop - marginBottom;
+      const totalPages = Math.ceil(imgHeight / availableHeight);
       
       for (let page = 0; page < totalPages; page++) {
         if (page > 0) {
           pdf.addPage();
         }
         
-        const yOffset = page * (pdfHeight - 20);
-        pdf.addImage(imgData, 'PNG', 10, 10 - yOffset, imgWidth, imgHeight);
+        const yOffset = page * availableHeight;
+        pdf.addImage(imgData, 'PNG', marginSide, marginTop - yOffset, imgWidth, imgHeight);
         
         // ページ番号
         pdf.setFontSize(9);
         pdf.setTextColor(150, 150, 150);
-        pdf.text(`${page + 1} / ${totalPages}`, pdfWidth / 2, pdfHeight - 10, { align: 'center' });
+        pdf.text(`${page + 1} / ${totalPages}`, pdfWidth / 2, pdfHeight - 15, { align: 'center' });
       }
     } else {
-      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', marginSide, marginTop, imgWidth, imgHeight);
     }
 
     pdf.save(filename);
@@ -223,8 +229,8 @@ export async function generatePDF(elementId: string, filename: string): Promise<
     });
 
     // A4サイズの設定（余白を考慮）
-    const pageMarginTop = 15;
-    const pageMarginBottom = 20; // ページ番号のスペース
+    const pageMarginTop = 20;
+    const pageMarginBottom = 30; // ページ番号と下部余白を増加
     const pageMarginLeft = 15;
     const pageMarginRight = 15;
     
@@ -249,8 +255,8 @@ export async function generatePDF(elementId: string, filename: string): Promise<
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
-          width: section.offsetWidth,
-          height: section.offsetHeight,
+          width: section.scrollWidth,
+          height: section.scrollHeight,
           scrollX: 0,
           scrollY: 0,
           ignoreElements: (element) => {
@@ -258,7 +264,9 @@ export async function generatePDF(elementId: string, filename: string): Promise<
             return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
           },
           foreignObjectRendering: false,
-          removeContainer: false
+          removeContainer: false,
+          windowWidth: section.scrollWidth,
+          windowHeight: section.scrollHeight
         });
 
         const imgWidth = contentWidth;
@@ -272,7 +280,7 @@ export async function generatePDF(elementId: string, filename: string): Promise<
           pdf.text(
             `${pageNum}`,
             pdfWidth / 2,
-            pdfHeight - 10,
+            pdfHeight - 15,
             { align: 'center' }
           );
           
@@ -302,7 +310,7 @@ export async function generatePDF(elementId: string, filename: string): Promise<
       pdf.text(
         `${pageNum}`,
         pdfWidth / 2,
-        pdfHeight - 10,
+        pdfHeight - 15,
         { align: 'center' }
       );
     } else {
@@ -313,8 +321,8 @@ export async function generatePDF(elementId: string, filename: string): Promise<
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        width: element.offsetWidth,
-        height: element.offsetHeight,
+        width: element.scrollWidth,
+        height: element.scrollHeight,
         scrollX: 0,
         scrollY: 0,
         ignoreElements: (element) => {
@@ -322,7 +330,9 @@ export async function generatePDF(elementId: string, filename: string): Promise<
           return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
         },
         foreignObjectRendering: false,
-        removeContainer: false
+        removeContainer: false,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
       });
 
       const imgWidth = contentWidth;
@@ -354,7 +364,7 @@ export async function generatePDF(elementId: string, filename: string): Promise<
         pdf.text(
           `${page + 1} / ${totalPages}`,
           pdfWidth / 2,
-          pdfHeight - 10,
+          pdfHeight - 15,
           { align: 'center' }
         );
       }
