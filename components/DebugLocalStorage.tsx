@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { contractHistoryStorage } from '@/lib/contract-history';
+import { StorageDebugData } from '@/lib/types';
 
 export default function DebugLocalStorage() {
-  const [storageData, setStorageData] = useState<any>(null);
+  const [storageData, setStorageData] = useState<StorageDebugData | null>(null);
   
   useEffect(() => {
     // LocalStorageからデータを取得
-    const data: any = {};
+    const data: StorageDebugData = {
+      contractHistory: [],
+      contractHistoryCount: 0,
+      monthlyGroups: [],
+      monthlyGroupsCount: 0
+    };
     
     // 契約履歴
     const history = contractHistoryStorage.getAll();

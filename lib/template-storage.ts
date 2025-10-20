@@ -1,6 +1,6 @@
 "use client";
 
-import { ContractTemplate, ContractSection, defaultSections, commonSections } from './template-types';
+import { ContractTemplate, defaultSections, commonSections } from './template-types';
 
 const TEMPLATES_KEY = 'contract_templates';
 
@@ -12,11 +12,14 @@ export const templateStorage = {
       try {
         const parsed = JSON.parse(data);
         // Date型を復元
-        return parsed.map((t: any) => ({
-          ...t,
-          createdAt: new Date(t.createdAt),
-          updatedAt: new Date(t.updatedAt)
-        }));
+        return parsed.map((t: unknown) => {
+          const template = t as Record<string, unknown>;
+          return {
+            ...template,
+            createdAt: new Date(template.createdAt as string),
+            updatedAt: new Date(template.updatedAt as string)
+          } as ContractTemplate;
+        });
       } catch (error) {
         console.error('Error parsing templates:', error);
         return [

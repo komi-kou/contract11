@@ -1,5 +1,6 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { StyleBackup } from './types';
 
 export async function generatePDF(elementId: string, filename: string): Promise<void> {
   const element = document.getElementById(elementId);
@@ -8,7 +9,7 @@ export async function generatePDF(elementId: string, filename: string): Promise<
   }
 
   // html2canvasがlab色をサポートしていないため、一時的にスタイルを調整
-  const originalStyles: Array<{element: HTMLElement, property: string, value: string}> = [];
+  const originalStyles: StyleBackup[] = [];
   
   try {
     
@@ -182,13 +183,13 @@ export async function generatePDF(elementId: string, filename: string): Promise<
     
     // 元のスタイルを復元
     originalStyles.forEach(({element, property, value}) => {
-      (element.style as any)[property] = value;
+      (element.style as unknown as Record<string, string>)[property] = value;
     });
   } catch (error) {
     console.error('PDF generation failed:', error);
     // エラー時も元のスタイルを復元
     originalStyles.forEach(({element, property, value}) => {
-      (element.style as any)[property] = value;
+      (element.style as unknown as Record<string, string>)[property] = value;
     });
     throw error;
   }

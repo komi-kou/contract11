@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ContractTemplate, ContractSection } from '@/lib/template-types';
 import { templateStorage } from '@/lib/template-storage';
 import { FileEdit, Save, RotateCcw, Plus, Trash2, ChevronUp, ChevronDown, X } from 'lucide-react';
@@ -15,15 +15,8 @@ interface TemplateEditorProps {
 export default function TemplateEditor({ isOpen, onClose, type, onSave }: TemplateEditorProps) {
   const [template, setTemplate] = useState<ContractTemplate | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-  const [editingSection, setEditingSection] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadTemplate();
-    }
-  }, [isOpen, type]);
-
-  const loadTemplate = () => {
+  const loadTemplate = useCallback(() => {
     try {
       const loaded = templateStorage.getByType(type);
       console.log('Loaded template:', loaded);
@@ -31,7 +24,13 @@ export default function TemplateEditor({ isOpen, onClose, type, onSave }: Templa
     } catch (error) {
       console.error('Error loading template:', error);
     }
-  };
+  }, [type]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadTemplate();
+    }
+  }, [isOpen, type, loadTemplate]);
 
   const handleSaveTemplate = () => {
     if (!template) {

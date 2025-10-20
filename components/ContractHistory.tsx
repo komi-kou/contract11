@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ContractHistory as ContractHistoryType, MonthlyGroup, contractHistoryStorage } from '@/lib/contract-history';
 import { Calendar, FileText, Download, Trash2, ChevronDown, ChevronRight, FolderOpen, Folder } from 'lucide-react';
 import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
 
 interface ContractHistoryProps {
   onSelectContract?: (contract: ContractHistoryType) => void;
@@ -14,22 +13,8 @@ interface ContractHistoryProps {
 export default function ContractHistory({ onSelectContract, customerId }: ContractHistoryProps) {
   const [monthlyGroups, setMonthlyGroups] = useState<MonthlyGroup[]>([]);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadHistory();
-    
-    const handleUpdate = () => {
-      loadHistory();
-    };
-
-    window.addEventListener('contract-history-updated', handleUpdate);
-    return () => {
-      window.removeEventListener('contract-history-updated', handleUpdate);
-    };
-  }, [customerId]);
-
-  const loadHistory = () => {
+  const loadHistory = useCallback(() => {
     if (customerId) {
       const customerHistory = contractHistoryStorage.getByCustomer(customerId);
       // 顧客別の履歴を月ごとにグループ化
@@ -57,9 +42,22 @@ export default function ContractHistory({ onSelectContract, customerId }: Contra
         b.yearMonth.localeCompare(a.yearMonth)
       ));
     } else {
-      setMonthlyGroups(contractHistoryStorage.getGroupedByMonth());
+      setMonthlyGroups(contractHistoryStorage.getGroupedByMonth(      ));
     }
-  };
+  }, [customerId]);
+
+  useEffect(() => {
+    loadHistory();
+    
+    const handleUpdate = () => {
+      loadHistory();
+    };
+
+    window.addEventListener('contract-history-updated', handleUpdate);
+    return () => {
+      window.removeEventListener('contract-history-updated', handleUpdate);
+    };
+  }, [customerId, loadHistory]);
 
   const toggleMonth = (yearMonth: string) => {
     const newExpanded = new Set(expandedMonths);

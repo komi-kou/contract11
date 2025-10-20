@@ -30,10 +30,13 @@ export const contractHistoryStorage = {
     if (data) {
       try {
         const parsed = JSON.parse(data);
-        return parsed.map((item: any) => ({
-          ...item,
-          createdAt: new Date(item.createdAt)
-        }));
+        return parsed.map((item: unknown) => {
+          const contract = item as Record<string, unknown>;
+          return {
+            ...contract,
+            createdAt: new Date(contract.createdAt as string)
+          } as ContractHistory;
+        });
       } catch (error) {
         console.error('Error parsing contract history:', error);
         return [];
@@ -122,7 +125,7 @@ export const contractHistoryStorage = {
 
 export function createContractHistory(
   customer: { id: string; companyName: string },
-  contractData: any
+  contractData: Record<string, unknown>
 ): ContractHistory {
   const now = new Date();
   const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -131,10 +134,10 @@ export function createContractHistory(
     id: `contract-${Date.now()}`,
     customerId: customer.id,
     customerName: customer.companyName,
-    contractType: contractData.contractType,
-    amount: contractData.amount || 0,
-    startDate: contractData.startDate,
-    endDate: contractData.endDate,
+    contractType: contractData.contractType as 'advertising' | 'consulting',
+    amount: (contractData.amount as number) || 0,
+    startDate: contractData.startDate as string,
+    endDate: contractData.endDate as string | undefined,
     createdAt: now,
     yearMonth,
     status: 'draft'

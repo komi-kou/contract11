@@ -6,7 +6,6 @@ import { customerStorage } from '@/lib/storage';
 import CustomerForm from '@/components/CustomerForm';
 import CustomerList from '@/components/CustomerList';
 import ContractForm from '@/components/ContractForm';
-import ContractPreview from '@/components/ContractPreview';
 import TemplateContractPreview from '@/components/TemplateContractPreview';
 import TemplateEditor from '@/components/TemplateEditor';
 import { generatePDF } from '@/lib/pdf-generator';
@@ -15,7 +14,7 @@ import DebugButton from '@/components/DebugButton';
 import DebugLocalStorage from '@/components/DebugLocalStorage';
 import ContractHistory from '@/components/ContractHistory';
 import { contractHistoryStorage, createContractHistory } from '@/lib/contract-history';
-import { Users, FileText, Plus, Download, X, Menu, FileEdit, History, Save, FolderOpen } from 'lucide-react';
+import { Users, FileText, Plus, Download, X, Menu, FileEdit, Save, FolderOpen } from 'lucide-react';
 
 type View = 'customers' | 'add-customer' | 'edit-customer' | 'create-contract' | 'preview-contract' | 'history';
 
@@ -27,7 +26,6 @@ export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [templateEditorOpen, setTemplateEditorOpen] = useState(false);
   const [templateType, setTemplateType] = useState<'advertising' | 'consulting'>('advertising');
-  const [useTemplate, setUseTemplate] = useState(true);
   const [templateUpdateKey, setTemplateUpdateKey] = useState(0);
   const [companyInfo, setCompanyInfo] = useState({
     name: '株式会社サンプル',
