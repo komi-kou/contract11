@@ -1,5 +1,3 @@
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { StyleBackup } from './types';
 
 // シンプルなPDF生成関数（フォールバック用）
@@ -14,6 +12,12 @@ export async function generateSimplePDF(elementId: string, filename: string): Pr
   if (!hasContent) {
     throw new Error('契約書の内容が空です。PDFを生成できません。');
   }
+
+  // 動的インポート
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import('html2canvas'),
+    import('jspdf')
+  ]);
 
   // カラー関数の処理
   const originalStyles: StyleBackup[] = [];
@@ -134,6 +138,12 @@ export async function generatePDF(elementId: string, filename: string): Promise<
   if (!hasContent) {
     throw new Error('契約書の内容が空です。PDFを生成できません。');
   }
+
+  // 動的インポート
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import('html2canvas'),
+    import('jspdf')
+  ]);
 
   // html2canvasが新しいカラー関数をサポートしていないため、一時的にスタイルを調整
   const originalStyles: StyleBackup[] = [];
