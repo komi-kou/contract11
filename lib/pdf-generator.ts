@@ -15,7 +15,39 @@ export async function generateSimplePDF(elementId: string, filename: string): Pr
     throw new Error('契約書の内容が空です。PDFを生成できません。');
   }
 
+  // カラー関数の処理
+  const originalStyles: StyleBackup[] = [];
+  
+  const processColorProperty = (element: HTMLElement, property: string, fallbackColor: string) => {
+    const computedStyle = window.getComputedStyle(element);
+    const colorValue = computedStyle.getPropertyValue(property);
+    
+    if (colorValue && (
+      colorValue.includes('lab') || 
+      colorValue.includes('oklch') || 
+      colorValue.includes('okich') ||
+      colorValue.includes('color(') ||
+      colorValue.includes('hwb') ||
+      colorValue.includes('lch')
+    )) {
+      originalStyles.push({
+        element: element,
+        property: property,
+        value: element.style.getPropertyValue(property)
+      });
+      element.style.setProperty(property, fallbackColor);
+    }
+  };
+
   try {
+    const allElements = element.querySelectorAll('*');
+    allElements.forEach((el) => {
+      const htmlEl = el as HTMLElement;
+      processColorProperty(htmlEl, 'background-color', '#ffffff');
+      processColorProperty(htmlEl, 'color', '#000000');
+      processColorProperty(htmlEl, 'border-color', '#cccccc');
+    });
+
     const canvas = await html2canvas(element, {
       scale: 1,
       logging: false,
@@ -25,7 +57,11 @@ export async function generateSimplePDF(elementId: string, filename: string): Pr
       scrollX: 0,
       scrollY: 0,
       width: element.scrollWidth,
-      height: element.scrollHeight
+      height: element.scrollHeight,
+      ignoreElements: (element) => {
+        return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
+      },
+      foreignObjectRendering: false
     });
 
     const imgData = canvas.toDataURL('image/png', 0.8);
@@ -63,8 +99,20 @@ export async function generateSimplePDF(elementId: string, filename: string): Pr
     }
 
     pdf.save(filename);
+    
+    // 元のスタイルを復元
+    originalStyles.forEach(({element, property, value}) => {
+      element.style.setProperty(property, value);
+    });
+    
   } catch (error) {
     console.error('Simple PDF generation failed:', error);
+    
+    // エラー時も元のスタイルを復元
+    originalStyles.forEach(({element, property, value}) => {
+      element.style.setProperty(property, value);
+    });
+    
     throw new Error(`PDF生成に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -81,46 +129,87 @@ export async function generatePDF(elementId: string, filename: string): Promise<
     throw new Error('契約書の内容が空です。PDFを生成できません。');
   }
 
-  // html2canvasがlab色をサポートしていないため、一時的にスタイルを調整
+  // html2canvasが新しいカラー関数をサポートしていないため、一時的にスタイルを調整
   const originalStyles: StyleBackup[] = [];
   
   try {
     
-    // すべての要素のlab色を一時的に置換
+    // より包括的なカラー関数の処理関数
+    const processColorProperty = (element: HTMLElement, property: string, fallbackColor: string) => {
+      const computedStyle = window.getComputedStyle(element);
+      const colorValue = computedStyle.getPropertyValue(property);
+      
+      if (colorValue && (
+        colorValue.includes('lab') || 
+        colorValue.includes('oklch') || 
+        colorValue.includes('okich') ||
+        colorValue.includes('color(') ||
+        colorValue.includes('hwb') ||
+        colorValue.includes('lch') ||
+        colorValue.includes('var(')
+      )) {
+        originalStyles.push({
+          element: element,
+          property: property,
+          value: element.style.getPropertyValue(property)
+        });
+        element.style.setProperty(property, fallbackColor);
+      }
+    };
+
+    // CSS変数も処理
+    const processCSSVariables = () => {
+      const root = document.documentElement;
+      const computedStyle = window.getComputedStyle(root);
+      
+      // 主要なCSS変数をチェック
+      const cssVars = ['--background', '--foreground', '--color-background', '--color-foreground'];
+      
+      cssVars.forEach(cssVar => {
+        const value = computedStyle.getPropertyValue(cssVar);
+        if (value && (
+          value.includes('lab') || 
+          value.includes('oklch') || 
+          value.includes('okich') ||
+          value.includes('color(') ||
+          value.includes('hwb') ||
+          value.includes('lch')
+        )) {
+          originalStyles.push({
+            element: root,
+            property: cssVar,
+            value: root.style.getPropertyValue(cssVar)
+          });
+          // 安全な色に置換
+          if (cssVar.includes('background')) {
+            root.style.setProperty(cssVar, '#ffffff');
+          } else {
+            root.style.setProperty(cssVar, '#000000');
+          }
+        }
+      });
+    };
+
+    // CSS変数を処理
+    processCSSVariables();
+
+    // すべての要素の新しいカラー関数を一時的に置換
     const allElements = element.querySelectorAll('*');
     allElements.forEach((el) => {
       const htmlEl = el as HTMLElement;
-      const computedStyle = window.getComputedStyle(htmlEl);
       
-      // 背景色のチェックと置換
-      if (computedStyle.backgroundColor && computedStyle.backgroundColor.includes('lab')) {
-        originalStyles.push({
-          element: htmlEl,
-          property: 'backgroundColor',
-          value: htmlEl.style.backgroundColor
-        });
-        htmlEl.style.backgroundColor = '#ffffff';
-      }
+      // 主要なカラープロパティを処理
+      processColorProperty(htmlEl, 'background-color', '#ffffff');
+      processColorProperty(htmlEl, 'color', '#000000');
+      processColorProperty(htmlEl, 'border-color', '#cccccc');
+      processColorProperty(htmlEl, 'border-left-color', '#cccccc');
+      processColorProperty(htmlEl, 'border-right-color', '#cccccc');
+      processColorProperty(htmlEl, 'border-top-color', '#cccccc');
+      processColorProperty(htmlEl, 'border-bottom-color', '#cccccc');
+      processColorProperty(htmlEl, 'outline-color', '#cccccc');
+      processColorProperty(htmlEl, 'text-decoration-color', '#000000');
+      processColorProperty(htmlEl, 'column-rule-color', '#cccccc');
       
-      // 文字色のチェックと置換
-      if (computedStyle.color && computedStyle.color.includes('lab')) {
-        originalStyles.push({
-          element: htmlEl,
-          property: 'color',
-          value: htmlEl.style.color
-        });
-        htmlEl.style.color = '#000000';
-      }
-      
-      // ボーダー色のチェックと置換
-      if (computedStyle.borderColor && computedStyle.borderColor.includes('lab')) {
-        originalStyles.push({
-          element: htmlEl,
-          property: 'borderColor',
-          value: htmlEl.style.borderColor
-        });
-        htmlEl.style.borderColor = '#cccccc';
-      }
     });
 
     // 条項（セクション）ごとにページ分割するための要素を取得
@@ -155,7 +244,7 @@ export async function generatePDF(elementId: string, filename: string): Promise<
         
         // セクションごとにキャプチャ
         const canvas = await html2canvas(section, {
-          scale: 1.5,
+          scale: 1.2,
           logging: false,
           useCORS: true,
           allowTaint: true,
@@ -163,7 +252,13 @@ export async function generatePDF(elementId: string, filename: string): Promise<
           width: section.offsetWidth,
           height: section.offsetHeight,
           scrollX: 0,
-          scrollY: 0
+          scrollY: 0,
+          ignoreElements: (element) => {
+            // 特定の要素を無視（オプション）
+            return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
+          },
+          foreignObjectRendering: false,
+          removeContainer: false
         });
 
         const imgWidth = contentWidth;
@@ -213,7 +308,7 @@ export async function generatePDF(elementId: string, filename: string): Promise<
     } else {
       // セクションがない場合は、従来の方法でページ分割
       const canvas = await html2canvas(element, {
-        scale: 1.5,
+        scale: 1.2,
         logging: false,
         useCORS: true,
         allowTaint: true,
@@ -221,7 +316,13 @@ export async function generatePDF(elementId: string, filename: string): Promise<
         width: element.offsetWidth,
         height: element.offsetHeight,
         scrollX: 0,
-        scrollY: 0
+        scrollY: 0,
+        ignoreElements: (element) => {
+          // 特定の要素を無視（オプション）
+          return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
+        },
+        foreignObjectRendering: false,
+        removeContainer: false
       });
 
       const imgWidth = contentWidth;
@@ -287,8 +388,12 @@ export async function generatePDF(elementId: string, filename: string): Promise<
           throw new Error('PDF生成対象の要素が見つかりません。ページを再読み込みしてください。');
         } else if (error.message.includes('内容が空')) {
           throw error; // 既に適切なメッセージ
+        } else if (error.message.includes('unsupported color function') || error.message.includes('okich')) {
+          throw new Error('ブラウザが新しいカラー関数をサポートしていません。Chrome、Firefox、Safariの最新版をご利用ください。');
+        } else if (error.message.includes('html2canvas')) {
+          throw new Error('PDF生成ライブラリのエラーが発生しました。ページを再読み込みして再試行してください。');
         } else {
-          throw new Error(`PDF生成に失敗しました。ブラウザの互換性の問題の可能性があります。詳細: ${error.message}`);
+          throw new Error(`PDF生成に失敗しました。詳細: ${error.message}`);
         }
       } else {
         throw new Error('PDF生成中に予期しないエラーが発生しました。ブラウザを更新して再試行してください。');
