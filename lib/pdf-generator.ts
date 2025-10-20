@@ -2,10 +2,83 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { StyleBackup } from './types';
 
+// シンプルなPDF生成関数（フォールバック用）
+export async function generateSimplePDF(elementId: string, filename: string): Promise<void> {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    throw new Error(`Element with id '${elementId}' not found`);
+  }
+
+  // コンテンツの存在確認
+  const hasContent = element.textContent && element.textContent.trim().length > 0;
+  if (!hasContent) {
+    throw new Error('契約書の内容が空です。PDFを生成できません。');
+  }
+
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 1,
+      logging: false,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      scrollX: 0,
+      scrollY: 0,
+      width: element.scrollWidth,
+      height: element.scrollHeight
+    });
+
+    const imgData = canvas.toDataURL('image/png', 0.8);
+    
+    const pdf = new jsPDF({
+      orientation: 'p',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pdfWidth - 20; // 余白
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    // 画像がページより大きい場合は複数ページに分割
+    if (imgHeight > pdfHeight - 20) {
+      const totalPages = Math.ceil(imgHeight / (pdfHeight - 20));
+      
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) {
+          pdf.addPage();
+        }
+        
+        const yOffset = page * (pdfHeight - 20);
+        pdf.addImage(imgData, 'PNG', 10, 10 - yOffset, imgWidth, imgHeight);
+        
+        // ページ番号
+        pdf.setFontSize(9);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(`${page + 1} / ${totalPages}`, pdfWidth / 2, pdfHeight - 10, { align: 'center' });
+      }
+    } else {
+      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+    }
+
+    pdf.save(filename);
+  } catch (error) {
+    console.error('Simple PDF generation failed:', error);
+    throw new Error(`PDF生成に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
 export async function generatePDF(elementId: string, filename: string): Promise<void> {
   const element = document.getElementById(elementId);
   if (!element) {
-    throw new Error('Element not found');
+    throw new Error(`Element with id '${elementId}' not found`);
+  }
+
+  // コンテンツの存在確認
+  const hasContent = element.textContent && element.textContent.trim().length > 0;
+  if (!hasContent) {
+    throw new Error('契約書の内容が空です。PDFを生成できません。');
   }
 
   // html2canvasがlab色をサポートしていないため、一時的にスタイルを調整
@@ -82,11 +155,15 @@ export async function generatePDF(elementId: string, filename: string): Promise<
         
         // セクションごとにキャプチャ
         const canvas = await html2canvas(section, {
-          scale: 2,
+          scale: 1.5,
           logging: false,
           useCORS: true,
+          allowTaint: true,
           backgroundColor: '#ffffff',
-          windowWidth: 794
+          width: section.offsetWidth,
+          height: section.offsetHeight,
+          scrollX: 0,
+          scrollY: 0
         });
 
         const imgWidth = contentWidth;
@@ -136,11 +213,15 @@ export async function generatePDF(elementId: string, filename: string): Promise<
     } else {
       // セクションがない場合は、従来の方法でページ分割
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 1.5,
         logging: false,
         useCORS: true,
+        allowTaint: true,
         backgroundColor: '#ffffff',
-        windowWidth: 794
+        width: element.offsetWidth,
+        height: element.offsetHeight,
+        scrollX: 0,
+        scrollY: 0
       });
 
       const imgWidth = contentWidth;
@@ -186,11 +267,32 @@ export async function generatePDF(elementId: string, filename: string): Promise<
       (element.style as unknown as Record<string, string>)[property] = value;
     });
   } catch (error) {
-    console.error('PDF generation failed:', error);
+    console.error('Advanced PDF generation failed, trying simple method:', error);
     // エラー時も元のスタイルを復元
     originalStyles.forEach(({element, property, value}) => {
       (element.style as unknown as Record<string, string>)[property] = value;
     });
-    throw error;
+    
+    // フォールバック: シンプルなPDF生成を試行
+    try {
+      console.log('Attempting simple PDF generation as fallback');
+      await generateSimplePDF(elementId, filename);
+      return;
+    } catch (fallbackError) {
+      console.error('Both PDF generation methods failed:', fallbackError);
+      
+      // より具体的なエラーメッセージを提供
+      if (error instanceof Error) {
+        if (error.message.includes('Element not found')) {
+          throw new Error('PDF生成対象の要素が見つかりません。ページを再読み込みしてください。');
+        } else if (error.message.includes('内容が空')) {
+          throw error; // 既に適切なメッセージ
+        } else {
+          throw new Error(`PDF生成に失敗しました。ブラウザの互換性の問題の可能性があります。詳細: ${error.message}`);
+        }
+      } else {
+        throw new Error('PDF生成中に予期しないエラーが発生しました。ブラウザを更新して再試行してください。');
+      }
+    }
   }
 }

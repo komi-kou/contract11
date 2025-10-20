@@ -74,7 +74,7 @@ export default function TemplateContractPreview({ customer, contractData, compan
   };
 
   return (
-    <div id="contract-content" className="bg-white p-8 max-w-4xl mx-auto">
+    <div id="contract-content" className="bg-white p-8 max-w-4xl mx-auto" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* タイトル */}
       <div className="contract-section">
         <h1 className="text-2xl font-bold text-center mb-8">{template.title}</h1>

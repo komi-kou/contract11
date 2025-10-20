@@ -87,14 +87,45 @@ export default function Home() {
   };
 
   const handleDownloadPDF = async () => {
-    if (!contractData || !selectedCustomer) return;
+    if (!contractData || !selectedCustomer) {
+      alert('契約データまたは顧客情報が不足しています');
+      return;
+    }
     
     try {
+      // PDF生成前の確認
+      const contractElement = document.getElementById('contract-content');
+      if (!contractElement) {
+        alert('契約書の内容が読み込まれていません。ページを再読み込みしてください。');
+        return;
+      }
+
       const filename = `契約書_${selectedCustomer.companyName}_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // ローディング表示（オプション）
+      const downloadButton = document.querySelector('[title="PDFダウンロード"], button:has(.lucide-download)') as HTMLButtonElement;
+      if (downloadButton) {
+        downloadButton.disabled = true;
+        downloadButton.textContent = '生成中...';
+      }
+
       await generatePDF('contract-content', filename);
+      
+      // 成功メッセージ
+      alert('PDFが正常に生成されました');
+      
     } catch (error) {
-      alert('PDF生成に失敗しました');
-      console.error(error);
+      // エラーメッセージを詳細に表示
+      const errorMessage = error instanceof Error ? error.message : 'PDF生成に失敗しました';
+      alert(errorMessage);
+      console.error('PDF generation error:', error);
+    } finally {
+      // ボタンの状態を復元
+      const downloadButton = document.querySelector('[title="PDFダウンロード"], button:has(.lucide-download)') as HTMLButtonElement;
+      if (downloadButton) {
+        downloadButton.disabled = false;
+        downloadButton.textContent = 'PDF';
+      }
     }
   };
 
